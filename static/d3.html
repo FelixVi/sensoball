@@ -39,7 +39,7 @@
     <script src="http://d3js.org/d3.v3.min.js"></script>
     <script>
         var limit = 60 * 1,
-            duration = 750,
+            duration = 7500000,
             now = new Date(Date.now() - duration)
 
         var width = 1000,
@@ -74,8 +74,7 @@
             .range([0, width])
 
         var y = d3.scale.linear()
-            //.domain([-2750, 2750])
-            .domain([-6000, 6000])
+            .domain([-3750, 3750])
             .range([height, 0])
 
         var line = d3.svg.line()
@@ -109,13 +108,13 @@
 
 
 
-        function tick(data) {
-            now = new Date()
+        function tick(sample) {
+            var data = sample.data;
+            var now = new Date(sample.t)
 
             // Add new values
             for (var name in groups) {
                 var group = groups[name]
-                //group.data.push(group.value) // Real values arrive at irregular intervals
                 group.data.push(y(data[name]))
                 group.path.attr('d', line)
             }
@@ -145,10 +144,14 @@
         }
 
         var ws = new WebSocket("ws://127.0.0.1:8081/data")
-        var globaldata;
+        ws.onopen = function() {
+            ws.send(JSON.stringify({'action':'start'}));
+        }
         ws.onmessage = function(data_raw) {
-            var data = JSON.parse(data_raw.data);
-            tick(data);
+            var datas = JSON.parse(data_raw.data);
+            for (var i in datas) {
+                tick(datas[i]);
+            }
         }
     </script>
 </html>

@@ -1,7 +1,11 @@
-import sys
+import tornado.ioloop
+from tornado import gen
 import serial
 import socket
-import multiprocessing
+from collections import deque
+import time
+
+from lib.AsyncUDPServer import UDPStream
 
 
 def parse_sample(data):
@@ -10,59 +14,75 @@ def parse_sample(data):
         val = val - (1 << 16)
     return val
 
-
-class SensoBall(object):
-    def __init__(self, device_path, num_samples=3):
-        self.num_samples = num_samples
-        self.queue = multiprocessing.Queue()
-        self.sensoballdata = SensoBallData(device_path, self.queue)
-        self.datathread = multiprocessing.Process(target=self.sensoballdata.run)
-        self.datathread.start()
-
-    def __iter__(self):
-        while True:
-            data = [self.queue.get() for _ in range(self.num_samples)]
-            yield data
-
-
-class SensoBallData(object):
-    run_loop = """
+_RUN_LOOP = """
 sk=net.createConnection(net.UDP,0)\r\n
 sk:connect(8326,"{hostname}")\r\n
-tmr.alarm(1, 100, 1, senddata )\r\n
 tmr.alarm(0, 20, 1, readL3GD20 )\r\n
+tmr.alarm(1, 100, 1, senddata )\r\n
 """
 
-    def __init__(self, device_path, queue):
-        self.queue = queue
+
+class SensoBall(object):
+    def __init__(self, host_ip=None, device_path=None, samples_per_frame=3,
+                 port=8326, buffer_size=8192, ioloop=None):
         self.device_path = device_path
+        self.host_ip = host_ip
+        self.samples_per_frame = samples_per_frame
+        self.queue = deque(maxlen=buffer_size)
+        self.port = port
+        self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
+        if device_path and host_ip:
+            self._initialize_device()
 
-    def run(self):
-        self.UDP_PORT = 8326
-        self.sock = socket.socket(socket.AF_INET,
-                                  socket.SOCK_DGRAM)
-        self.sock.bind(('', 8326))
+    def _startserver(self):
+        sock = socket.socket(socket.AF_INET,
+                             socket.SOCK_DGRAM)
+        sock.setblocking(False)
+        sock.bind(('', self.port))
+        self.s = UDPStream(sock, chunk_size=96, in_ioloop=self.ioloop)
 
-        hostname = '10.0.0.129'  # socket.gethostbyname(socket.gethostname())
-        # device = serial.Serial(self.device_path)
+    def _stopserver(self):
+        self.s.close()
 
-        # run_loop = self.run_loop.format(hostname=hostname)
-        # device.write(run_loop.encode())
-        while True:
-            data = self.sock.recv(96)
-            i = 0
-            while True:
-                try:
-                    sample = parse_sample(data[i:i+2])
-                    self.queue.put(sample)
-                except IndexError:
-                    break
-                i += 2
+    def start(self):
+        self.running = True
+        self._startserver()
+        self.ioloop.add_callback(self._fill_queue)
 
+    def stop(self):
+        self.running = False
+        self._stopserver()
 
-if __name__ == "__main__":
-    device_path = sys.argv[1]
-    sensoball = SensoBall(device_path)
-    for sample in iter(sensoball):
-        print(sample)
+    @gen.coroutine
+    def _fill_queue(self):
+        sample = []
+        while self.running:
+            data = yield gen.Task(self.s.read_chunk)
+            for i in range(0, len(data), 2):
+                measurement = parse_sample(data[i:i+2])
+                sample.append(measurement)
+                if len(sample) == self.samples_per_frame:
+                    self.queue.append((tuple(sample), time.time()))
+                    sample = sample[:0]
 
+    def _initialize_device(self):
+        device = serial.Serial(self.device_path)
+        run_loop = _RUN_LOOP.format(hostname=self.host_ip)
+        device.write(run_loop.encode())
+        device.close()
+
+    def get_samples(self, num_samples=1, newest=False, clear_old=True):
+        samples = []
+        if self.queue:
+            try:
+                for i in range(num_samples):
+                    if not newest:
+                        samples.append(self.queue.pop())
+                    else:
+                        samples.append(self.queue.popleft())
+            except:
+                pass
+        if clear_old:
+            self.queue.clear()
+        samples.sort(key=lambda x: x[1])
+        return samples

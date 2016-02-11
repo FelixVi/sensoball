@@ -1,0 +1,49 @@
+<html>
+    <head>
+        <script type="text/javascript" src="js/smoothie.js"></script>
+    </head>
+    <body>
+        <canvas id="smoothie-chart" width="800px" height="600px">
+
+        <script>
+var chart = new SmoothieChart({
+    millisPerPixel: 5,
+    interpolation:'linear',
+    timestampFormatter:SmoothieChart.timeFormatter,
+    horizontalLines:[
+        {color:'#ffffff',lineWidth:1,value:0},
+        {color:'#880000',lineWidth:2,value:3333},
+        {color:'#880000',lineWidth:2,value:-3333}
+    ]
+});
+var canvas = document.getElementById('smoothie-chart');
+
+var series_x = new TimeSeries();
+var series_y = new TimeSeries();
+var series_z = new TimeSeries();
+
+chart.addTimeSeries(series_x, {lineWidth:2,strokeStyle:'#00ff00'});
+chart.addTimeSeries(series_y, {lineWidth:2,strokeStyle:'#0000ff'});
+chart.addTimeSeries(series_z, {lineWidth:2,strokeStyle:'#ff0000'});
+
+chart.streamTo(canvas, 500);
+
+        var ws = new WebSocket("ws://127.0.0.1:8081/data")
+        ws.onopen = function() {
+            ws.send(JSON.stringify({'action':'start'}));
+        }
+        ws.onmessage = function(data_raw) {
+            var datas = JSON.parse(data_raw.data);
+            for (var i in datas) {
+                var data = datas[i];
+            console.log(data);
+                var t = new Date(data['t']);
+                var sample = data.data;
+                series_x.append(t, sample.x);
+                series_y.append(t, sample.y);
+                series_z.append(t, sample.z);
+            }
+        }
+        </script>
+    </body>
+</html>

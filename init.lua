@@ -1,28 +1,19 @@
 function ConnStatus(n)
-    status = wifi.sta.status()
-
+    local status = wifi.sta.status()
     local x = n+1
     if (x < 50) and ( status < 5 ) then
         tmr.alarm(0,100,0,function() ConnStatus(x) end)
     else
         if status == 5 then
             print("Connected as "..wifi.sta.getip())
-            sk=net.createConnection(net.UDP,0)\r\n
-            sk:connect(8326,"10.0.0.129")
-            tmr.alarm(1, 100, 1, senddata )
-            tmr.alarm(0, 20, 1, readL3GD20 )
         else
             print("Connection failed :(")
         end
     end
 end
 
-print "FeVi_test"
-
 wifi.setmode(wifi.STATION)
-
-wifi.sta.config("SSID","passwd")
-
+wifi.sta.config("UncleAbhi2.4","maharaja")
 print("Connecting to wifi")
 ConnStatus(0)
 
