@@ -1,0 +1,16 @@
+#connect to wifi
+ip = wifi.sta.getip()
+print(ip)
+
+wifi.setmode(wifi.STATION)
+wifi.sta.config("SSID","PASSWD")
+wifi.sta.connect()
+ip = wifi.sta.getip()
+print(ip)
+
+
+#a udp client
+cu=net.createConnection(net.UDP, 0) 
+cu:on("receive",function(cu,c) print(c) end) 
+cu:connect(5005,"192.168.1.254")
+cu:send("hello")

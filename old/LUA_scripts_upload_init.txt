@@ -1,0 +1,141 @@
+file.remove("init.lua")
+file.open("init.lua", "a+")
+
+
+
+
+
+file.writeline('function ConnStatus(n)')
+file.writeline('status = wifi.sta.status()')
+
+file.writeline('local x = n+1')
+file.writeline('if (x < 50) and ( status < 5 ) then')
+file.writeline('tmr.alarm(0,100,0,function() ConnStatus(x) end)')
+file.writeline('else')
+file.writeline('if status == 5 then')
+file.writeline('print("Connected as "..wifi.sta.getip())')
+file.writeline('else')
+file.writeline('print("Connection failed :(")')
+file.writeline('end')
+file.writeline('end')
+file.writeline('end')
+
+file.writeline('print "FeVi_test"')
+
+file.writeline('wifi.setmode(wifi.STATION)')
+
+file.writeline('wifi.sta.config("SSID","PASSWD")')
+
+file.writeline('print("Connecting to wifi")')
+file.writeline('ConnStatus(0)')
+
+file.writeline('id=0')
+file.writeline('sda=4')
+file.writeline('scl=5')
+
+file.writeline('i2c.setup(id,sda,scl,i2c.SLOW)')
+
+file.writeline('function read_reg(dev_addr, reg_addr)')
+file.writeline('i2c.start(id)')
+file.writeline('i2c.address(id, dev_addr ,i2c.TRANSMITTER)')
+file.writeline('i2c.write(id,reg_addr)')
+file.writeline('i2c.stop(id)')
+file.writeline('i2c.start(id)')
+file.writeline('i2c.address(id, dev_addr,i2c.RECEIVER)')
+file.writeline('c=i2c.read(id,1)')
+file.writeline('i2c.stop(id)')
+file.writeline('return c')
+file.writeline('end')
+
+file.writeline('function write_reg(dev_addr, reg_addr, reg_val)')
+file.writeline('i2c.start(id)')
+file.writeline('i2c.address(id, dev_addr, i2c.TRANSMITTER)')
+file.writeline('i2c.write(id, reg_addr)')
+file.writeline('i2c.write(id, reg_val)')
+file.writeline('i2c.stop(id)')
+file.writeline('end')
+
+file.writeline('L3GD20addr=0x6A')
+file.writeline('L3GD20lowODR=0x39')
+file.writeline('L3GD20CTRL4=0x23')
+file.writeline('L3GD20CTRL1=0x20')
+file.writeline('L3GD20status=0x27')
+file.writeline('L3GD20OUTXLcont=0xA8')
+
+file.writeline('L3GD20OUTXL=0x28')
+file.writeline('L3GD20OUTXH=0x29')
+file.writeline('L3GD20OUTYL=0x2A')
+file.writeline('L3GD20OUTYH=0x2B')
+file.writeline('L3GD20OUTZL=0x2C')
+file.writeline('L3GD20OUTZH=0x2D')
+
+file.writeline('write_reg(L3GD20addr,L3GD20lowODR,0x01)')
+file.writeline('write_reg(L3GD20addr,L3GD20CTRL4,0x00)')
+file.writeline('write_reg(L3GD20addr,L3GD20CTRL1,0x8F)')
+
+file.writeline('L3GD20items=100')
+
+file.writeline('function readL3GD20()')
+file.writeline('if string.byte(read_reg(L3GD20addr,L3GD20status)) > 7 then')
+file.writeline('if L3GD20list.items > 100 then')
+file.writeline('List.pop(L3GD20list)')
+file.writeline('List.pop(L3GD20list)')
+file.writeline('List.pop(L3GD20list)')
+file.writeline('List.pop(L3GD20list)')
+file.writeline('List.pop(L3GD20list)')
+file.writeline('List.pop(L3GD20list)')
+file.writeline('end')
+file.writeline('i2c.start(id)')
+file.writeline('i2c.address(id, L3GD20addr ,i2c.TRANSMITTER)')
+file.writeline('i2c.write(id,L3GD20OUTXLcont)')
+file.writeline('i2c.stop(id)')
+file.writeline('i2c.start(id)')
+file.writeline('i2c.address(id, L3GD20addr,i2c.RECEIVER)')
+file.writeline('c=i2c.read(id,6)')
+file.writeline('i2c.stop(id)')
+file.writeline('List.push(L3GD20list,c:sub(1,1))')
+file.writeline('List.push(L3GD20list,c:sub(2,2))')
+file.writeline('List.push(L3GD20list,c:sub(3,3))')
+file.writeline('List.push(L3GD20list,c:sub(4,4))')
+file.writeline('List.push(L3GD20list,c:sub(5,5))')
+file.writeline('List.push(L3GD20list,c:sub(6,6))')
+file.writeline('end')
+file.writeline('end')
+
+file.writeline('function senddata()')
+file.writeline('if L3GD20list.items > 95 then')
+file.writeline('ghi=""')
+file.writeline('for i=1,96 do ghi=ghi..string.byte(List.pop(L3GD20list)).." " end')
+file.writeline('sk:send(ghi)')
+file.writeline('end')
+file.writeline('end')
+
+
+file.writeline('List = {}')
+file.writeline('function List.new ()')
+file.writeline('return {first = 0, last = -1, items = 0}')
+file.writeline('end')
+
+file.writeline('function List.push (list, value)')
+file.writeline('local last = list.last + 1')
+file.writeline('local items = list.items + 1')
+file.writeline('list.last = last')
+file.writeline('list.items = items')
+file.writeline('list[last] = value')
+file.writeline('end')
+
+file.writeline('function List.pop (list)')
+file.writeline('local first = list.first')
+file.writeline('if first > list.last then error("list is empty") end')
+file.writeline('local value = list[first]')
+file.writeline('local items = list.items - 1')
+file.writeline('list[first] = nil        -- to allow garbage collection')
+file.writeline('list.first = first + 1')
+file.writeline('list.items = items')
+file.writeline('return value')
+file.writeline('end')
+
+
+file.writeline('L3GD20list=List.new()')
+
+file.close()
