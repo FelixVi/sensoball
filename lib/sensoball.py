@@ -1,11 +1,11 @@
-import tornado.ioloop
 from tornado import gen
+import tornado.ioloop
 import serial
 import socket
-from collections import deque
 import time
+from collections import deque
 
-from lib.AsyncUDPServer import UDPStream
+from .AsyncUDPServer import UDPStream
 
 
 def parse_sample(data):

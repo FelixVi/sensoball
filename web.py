@@ -1,10 +1,17 @@
 import tornado.ioloop
 from tornado import gen
 from tornado import web
+from tornado import options
 from tornado import websocket
 
-from senso_ball import SensoBall
+from lib.sensoball import SensoBall
 import ujson as json
+
+
+options.define("port", default=6060, type=int, help="Port for the webserver")
+options.define("udp-port", default=8326, type=int,
+               help="Port for the UDP server")
+options.define("hostname", type=str, help="IP for sensoball to connect to")
 
 
 class DataHandler(websocket.WebSocketHandler):
@@ -30,7 +37,8 @@ class DataHandler(websocket.WebSocketHandler):
         elif message.get('action') == 'resample':
             self.rate = message.get('rate', self.default_rate)
         elif message.get('action') == 'change_batch':
-            self.batch_size = message.get('batch_size', self.default_batch_size)
+            self.batch_size = message.get('batch_size',
+                                          self.default_batch_size)
         elif message.get('action') == 'stop':
             self.running = False
 
@@ -54,7 +62,6 @@ class DataHandler(websocket.WebSocketHandler):
             self._send_data,
         )
 
-
     def on_close(self):
         print("Client disconnected :(")
 
@@ -63,8 +70,18 @@ class DataHandler(websocket.WebSocketHandler):
 
 
 if __name__ == "__main__":
+    options.parse_command_line()
+    port = options.options.port
+    udp_port = options.options.udp_port
+    hostname = options.options.hostname
+
     ioloop = tornado.ioloop.IOLoop.instance()
-    sensoball = SensoBall(host_ip='10.0.0.129', device_path='/dev/ttyUSB0', ioloop=ioloop)
+    sensoball = SensoBall(
+        host_ip=hostname,
+        device_path='/dev/ttyUSB0',
+        ioloop=ioloop,
+        port=udp_port,
+    )
     sensoball.start()
     app = web.Application(
         [
@@ -75,6 +92,6 @@ if __name__ == "__main__":
         debug=True,
         sensoball=sensoball,
     )
-    app.listen(8081)
-    print("Starting server on port 8081")
+    app.listen(port)
+    print("Starting server on port ", port)
     ioloop.start()
