@@ -11,7 +11,7 @@ import ujson as json
 options.define("port", default=6060, type=int, help="Port for the webserver")
 options.define("udp-port", default=8326, type=int,
                help="Port for the UDP server")
-options.define("hostname", type=str, help="IP for sensoball to connect to")
+options.define("hostip", type=str, help="IP for sensoball to connect to")
 
 
 class DataHandler(websocket.WebSocketHandler):
@@ -30,6 +30,7 @@ class DataHandler(websocket.WebSocketHandler):
         print("Message from client: ", data)
         message = json.loads(data)
         if message.get('action') == 'start':
+            print("Starting data transmission")
             self.rate = message.get('rate', self.default_rate)
             self.batch_size = message.get('rate', self.default_batch_size)
             self.running = True
@@ -73,11 +74,11 @@ if __name__ == "__main__":
     options.parse_command_line()
     port = options.options.port
     udp_port = options.options.udp_port
-    hostname = options.options.hostname
+    hostip = options.options.hostip
 
     ioloop = tornado.ioloop.IOLoop.instance()
     sensoball = SensoBall(
-        host_ip=hostname,
+        hostip=hostip,
         device_path='/dev/ttyUSB0',
         ioloop=ioloop,
         port=udp_port,

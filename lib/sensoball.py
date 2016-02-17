@@ -15,23 +15,23 @@ def parse_sample(data):
     return val
 
 _RUN_LOOP = """
-sk=net.createConnection(net.UDP,0)\r\n
-sk:connect(8326,"{hostname}")\r\n
-tmr.alarm(0, 20, 1, readL3GD20 )\r\n
-tmr.alarm(1, 100, 1, senddata )\r\n
+sk=net.createConnection(net.UDP,0)
+sk:connect(8326,"{hostname}")
+tmr.alarm(0, 20, 1, readL3GD20 )
+tmr.alarm(1, 100, 1, senddata )
 """
 
 
 class SensoBall(object):
-    def __init__(self, host_ip=None, device_path=None, samples_per_frame=3,
+    def __init__(self, hostip=None, device_path=None, samples_per_frame=3,
                  port=8326, buffer_size=8192, ioloop=None):
         self.device_path = device_path
-        self.host_ip = host_ip
+        self.hostip = hostip
         self.samples_per_frame = samples_per_frame
         self.queue = deque(maxlen=buffer_size)
         self.port = port
         self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
-        if device_path and host_ip:
+        if device_path and hostip:
             self._initialize_device()
 
     def _startserver(self):
@@ -66,9 +66,12 @@ class SensoBall(object):
                     sample = sample[:0]
 
     def _initialize_device(self):
+        print("Writing run code")
         device = serial.Serial(self.device_path)
-        run_loop = _RUN_LOOP.format(hostname=self.host_ip)
-        device.write(run_loop.encode())
+        run_loop = _RUN_LOOP.format(hostname=self.hostip)
+        for line in run_loop.split('\n'):
+            device.write((line + '\r\n').encode())
+            device.readline()
         device.close()
 
     def get_samples(self, num_samples=1, newest=False, clear_old=True):
