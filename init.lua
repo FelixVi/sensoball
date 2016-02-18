@@ -13,7 +13,7 @@ function ConnStatus(n)
 end
 
 wifi.setmode(wifi.STATION)
-wifi.sta.config("UncleAbhi2.4","maharaja")
+wifi.sta.config("SSID","XXXXXXXX")
 print("Connecting to wifi")
 ConnStatus(0)
 
