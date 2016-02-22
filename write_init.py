@@ -3,7 +3,7 @@ import time
 import sys
 
 
-def write_init(dev, lua):
+def write_init(dev, lua, params):
     print("Writing init file")
     dev.write(b'file.open("init.lua", "w+")\r\n')
     print(dev.readline())
@@ -12,8 +12,9 @@ def write_init(dev, lua):
         if not line.strip():
             continue
         lineno += 1
+        line = line.strip.replace("'", "\'").format(params)
         dev.write("file.writeline('{}')\r\n".format(
-            line.strip().replace("'", "\'")
+            line
         ).encode())
         print(lineno, dev.readline())
         time.sleep(0.1)
@@ -27,5 +28,9 @@ def write_init(dev, lua):
 if __name__ == "__main__":
     device_path = sys.argv[1]
     init = sys.argv[2]
+    params = {
+        "ssid": sys.argv[3],
+        "wpa_password": sys.argv[4],
+    }
     device = serial.Serial(device_path)
-    write_init(device, open(init))
+    write_init(device, open(init), params)

@@ -28,42 +28,29 @@ function SetupConnection()
 
     -- start the data server
     clients = {}
-    print("Creating server")
-    srv=net.createServer(net.UDP, 30)
-    srv:listen(8326)
-    srv:on("receive", function(srv, command)
-        print("got command: " .. command)
-        srv:send("hello")
-        --local ip, port = srv:getpeername()
-        --local connID = ip .. port
-        --if command == "c" then
-        --    if clients[connID] ~= nil then
-        --        print("Client already connected")
-        --    else
-        --        print("New client", connID)
-        --        if not next(clients) then
-        --            print("First connection, starting senddata alarm")
-        --            tmr.alarm(1, 100, 1, function() senddata(clients) end)
-        --        end
-        --        local conn = net.createConnection(net.UDP, 0)
-        --        conn:connect(port, ip)
-        --        clients[connID] = conn
-        --    end
-        --elseif command == "d" then
-        --    print("Client disconnected: ", connID)
-        --    clients[connID]:close()
-        --    clients[connID] = nil
-        --    if not next(clients) then
-        --        print("No clients, stopping data send")
-        --        tmr.stop(3)
-        --    end
-        --end
+    datastream = net.createServer(net.TCP, 0)
+    datastream:listen(8326, function(c)
+        connID = math.random(1000000,9999999)
+        print("New client", connID)
+        c.on("disconnection", function() 
+            print("Client disconnected: ", connID)
+            clients[connID].close()
+            clients[connID] = nil
+            if not next(a) then
+                print("No clients, stopping data send")
+                tmr.stop(3)
+            end
+        end)
+        if not next(a) then
+            print("First connection, starting senddata alarm")
+            tmr.alarm(1, 100, 1, function() senddata(clients) end)
+        end
+        clients[connID] = c
     end)
-    print("Done with setup")
 end
 
 wifi.setmode(wifi.STATION)
-wifi.sta.config("telepathy", "triplebreastedwhore")
+wifi.sta.config("{ssid}", "{wpa_password}")
 print("Connecting to wifi")
 ConnStatus(0)
 
@@ -144,7 +131,7 @@ function senddata(clients)
             ghi=ghi..List.pop(L3GD20list)
         end
         for clientID, conn in pairs(clients) do
-            print("Sending data to client: ", clientID)
+            print("Sending data to client: "..clientID)
             conn:send(ghi)
         end
     end
