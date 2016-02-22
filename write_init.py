@@ -22,7 +22,6 @@ def write_init(dev, lua):
     print("Restarting")
     dev.write(b'node.restart()\r\n')
     print(dev.readline())
-    time.sleep(20)
 
 
 if __name__ == "__main__":

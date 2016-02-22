@@ -70,6 +70,7 @@ class SensoBall(object):
         device = serial.Serial(self.device_path)
         run_loop = _RUN_LOOP.format(hostname=self.hostip)
         for line in run_loop.split('\n'):
+            print(line)
             device.write((line + '\r\n').encode())
             device.readline()
         device.close()
