@@ -143,7 +143,11 @@
             }
         }
 
-        var ws = new WebSocket("ws://127.0.0.1:8081/data")
+        function wsurl(s) {
+            var l = window.location;
+            return ((l.protocol === "https:") ? "wss://" : "ws://") + l.hostname + (((l.port != 80) && (l.port != 443)) ? ":" + l.port : "") + s;
+        }
+        var ws = new WebSocket(wsurl("/data"))
         ws.onopen = function() {
             ws.send(JSON.stringify({'action':'start'}));
         }

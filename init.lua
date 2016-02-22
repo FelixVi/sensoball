@@ -1,4 +1,4 @@
-ID="board1"
+ID="{name}"
 
 function ConnStatus(n)
     local status = wifi.sta.status()
@@ -28,20 +28,20 @@ function SetupConnection()
 
     -- start the data server
     clients = {}
-    datastream = net.createServer(net.TCP, 0)
+    datastream = net.createServer(net.TCP, 30)
     datastream:listen(8326, function(c)
         connID = math.random(1000000,9999999)
         print("New client", connID)
-        c.on("disconnection", function() 
+        c:on("disconnection", function() 
             print("Client disconnected: ", connID)
-            clients[connID].close()
+            clients[connID]:close()
             clients[connID] = nil
-            if not next(a) then
+            if not next(clients) then
                 print("No clients, stopping data send")
                 tmr.stop(3)
             end
         end)
-        if not next(a) then
+        if not next(clients) then
             print("First connection, starting senddata alarm")
             tmr.alarm(1, 100, 1, function() senddata(clients) end)
         end

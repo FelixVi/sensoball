@@ -12,7 +12,12 @@ def write_init(dev, lua, params):
         if not line.strip():
             continue
         lineno += 1
-        line = line.strip.replace("'", "\'").format(params)
+        line = line.strip().replace("'", "\'"). \
+            replace("{}", "{{}}")
+        try:
+            line = line.format(**params)
+        except KeyError:
+            pass
         dev.write("file.writeline('{}')\r\n".format(
             line
         ).encode())
@@ -31,6 +36,7 @@ if __name__ == "__main__":
     params = {
         "ssid": sys.argv[3],
         "wpa_password": sys.argv[4],
+        "name": sys.argv[5],
     }
     device = serial.Serial(device_path)
     write_init(device, open(init), params)

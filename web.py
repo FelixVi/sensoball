@@ -11,7 +11,8 @@ import ujson as json
 options.define("port", default=6060, type=int, help="Port for the webserver")
 options.define("udp-port", default=8326, type=int,
                help="Port for the UDP server")
-options.define("hostip", type=str, help="IP for sensoball to connect to")
+options.define("board-id", default=None, type=str,
+               help="ID of board to connect to")
 
 
 class DataHandler(websocket.WebSocketHandler):
@@ -65,6 +66,7 @@ class DataHandler(websocket.WebSocketHandler):
 
     def on_close(self):
         print("Client disconnected :(")
+        self.running = False
 
     def check_origin(self, origin):
         return True
@@ -74,12 +76,11 @@ if __name__ == "__main__":
     options.parse_command_line()
     port = options.options.port
     udp_port = options.options.udp_port
-    hostip = options.options.hostip
+    board_id = options.options.board_id
 
     ioloop = tornado.ioloop.IOLoop.instance()
     sensoball = SensoBall(
-        hostip=hostip,
-        device_path='/dev/ttyUSB0',
+        board_id=board_id,
         ioloop=ioloop,
         port=udp_port,
     )
@@ -94,5 +95,5 @@ if __name__ == "__main__":
         sensoball=sensoball,
     )
     app.listen(port)
-    print("Starting server on port ", port)
+    print("Starting server on port:", port)
     ioloop.start()
