@@ -1,19 +1,56 @@
+ID="{name}"
+
 function ConnStatus(n)
     local status = wifi.sta.status()
     local x = n+1
     if (x < 50) and ( status < 5 ) then
-        tmr.alarm(0,100,0,function() ConnStatus(x) end)
+        tmr.alarm(0,200,0,function() ConnStatus(x) end)
     else
         if status == 5 then
             print("Connected as "..wifi.sta.getip())
+            SetupConnection()
         else
             print("Connection failed :(")
         end
     end
 end
 
+function SetupConnection()
+    -- First set up the broadcaster so clients can find us
+    print("Creating broadcaster")
+    broadcaster = net.createConnection(net.UDP,0)
+    broadcaster:connect(1337, "224.1.2.18")
+    tmr.alarm(1, 10000, 1, function() broadcaster:send(ID) end)
+
+    -- start collecting data
+    print("Starting data collector")
+    tmr.alarm(2, 20, 1, readL3GD20)
+
+    -- start the data server
+    clients = {}
+    datastream = net.createServer(net.TCP, 30)
+    datastream:listen(8326, function(c)
+        connID = math.random(1000000,9999999)
+        print("New client", connID)
+        c:on("disconnection", function() 
+            print("Client disconnected: ", connID)
+            clients[connID]:close()
+            clients[connID] = nil
+            if not next(clients) then
+                print("No clients, stopping data send")
+                tmr.stop(3)
+            end
+        end)
+        if not next(clients) then
+            print("First connection, starting senddata alarm")
+            tmr.alarm(1, 100, 1, function() senddata(clients) end)
+        end
+        clients[connID] = c
+    end)
+end
+
 wifi.setmode(wifi.STATION)
-wifi.sta.config("SSID","XXXXXXXX")
+wifi.sta.config("{ssid}", "{wpa_password}")
 print("Connecting to wifi")
 ConnStatus(0)
 
@@ -87,13 +124,16 @@ function readL3GD20()
     end
 end
 
-function senddata()
+function senddata(clients)
     if L3GD20list.items > 95 then
         ghi=""
         for i=1,96 do 
             ghi=ghi..List.pop(L3GD20list)
         end
-        sk:send(ghi)
+        for clientID, conn in pairs(clients) do
+            print("Sending data to client: "..clientID)
+            conn:send(ghi)
+        end
     end
 end
 
